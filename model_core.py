@@ -311,6 +311,7 @@ class Two_Stream_Net(nn.Module):
                 if coach_flag == 0:
                     z = self.coach.run(x)
                     coach_flag = 1
+                    
                     torch.save(z[i], encoder_save_path[i])
                     #print("save" + encoder_save_path[i])
                 else:

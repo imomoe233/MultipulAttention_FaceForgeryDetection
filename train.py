@@ -32,19 +32,22 @@ def input_args():
     parser.add_argument("--cuda_id", type=int, default=0,
                         help="The GPU ID")
 
-    parser.add_argument("--train_label", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/train.labels.csv',
+    parser.add_argument("--train_label", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/train_offical.labels.csv',
                         help="The traindata label path")
 
-    parser.add_argument("--test_label", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/test.labels.csv',
+    parser.add_argument("--test_label", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/test_offical.labels.csv',
                         help="The traindata label path")
 
-    parser.add_argument("--train_dir", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/train',
+    parser.add_argument("--train_dir", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/train_offical',
                         help="The real_train_data path ")
 
-    parser.add_argument("--test_dir", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/test',
+    parser.add_argument("--test_dir", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/test_offical',
+                        help="The real_test_data path ")
+    
+    parser.add_argument("--results_save_path", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/FF++_offical2FF++_offical_results',
                         help="The real_test_data path ")
 
-    parser.add_argument("--load_model", type=bool, default=True,
+    parser.add_argument("--load_model", type=bool, default=False,
                         help="Whether load pretraining model")
 
     parser.add_argument("--pre_model", type=str, default='F:\Face Forgery Detection\checkpoints\FF++/checkpoint_2.tar',
@@ -107,15 +110,15 @@ if __name__ == '__main__':
 
     train_list = [file for file in os.listdir(args.train_dir) if file.endswith('.png')]
     # 打乱列表顺序
-    random.shuffle(train_list)
+    # random.shuffle(train_list)
     # 取前 100 个元素
-    #train_list = train_list[:100]
+    # train_list = train_list[:100]
     
     test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.png')]
     # 打乱列表顺序
-    random.shuffle(test_list)
+    # random.shuffle(test_list)
     # 取前 100 个元素
-    #test_list = test_list[:100]
+    # test_list = test_list[:100]
     
     ######################################################################################################
     #
@@ -263,7 +266,7 @@ if __name__ == '__main__':
         epoch = epoch + 1
 
         # Calculate TPR and FPR
-        fpr, tpr, thresholds = roc_curve(true_labels, predicted_probs, pos_label=0)
+        fpr, tpr, thresholds = roc_curve(true_labels, predicted_probs, pos_label=1)
 
         # print(fpr, tpr, thresholds)
         # print(true_labels, predicted_probs)
@@ -283,7 +286,10 @@ if __name__ == '__main__':
         plt.legend(loc="lower right")
         
         # Save ROC curve plot
-        plt.savefig('F:\ECCV\data_preprocessing\processed\FF++/results/roc_curve' + str(epoch) + '.png')
+        if not os.path.exists(args.results_save_path):
+            os.makedirs(args.results_save_path)
+            print(f"Folder '{args.results_save_path}' created.")
+        plt.savefig(args.results_save_path + '/roc_curve' + str(epoch) + '.png')
         
         # plt.show()
 
