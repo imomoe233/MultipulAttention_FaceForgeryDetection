@@ -1,24 +1,29 @@
-import sys
+
+import argparse
+import csv
 import os
+import random
+import sys
+
+import cv2
+import matplotlib.pyplot as plt
+import model_core
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
 # if __name__ == '__main__':
 #     sys.path.append(os.path.dirname(sys.path[0]))
 import wandb
-import cv2
-import torch
-import numpy as np
-import torch.nn as nn
-from tqdm import tqdm
-import torch.optim as optim
-from torchvision import utils as vutils
-from torchvision import transforms
-from torch.utils.data import Dataset
-import csv
-import dataset
-import argparse
-import model_core
 from loss import am_softmax
 from PIL import Image
-from torch.utils.data import WeightedRandomSampler
+from sklearn.metrics import auc, roc_curve
+from torch.utils.data import Dataset, WeightedRandomSampler
+from torchvision import transforms
+from torchvision import utils as vutils
+from tqdm import tqdm
+
+import dataset
 
 
 def input_args():
@@ -27,25 +32,25 @@ def input_args():
     parser.add_argument("--cuda_id", type=int, default=0,
                         help="The GPU ID")
 
-    parser.add_argument("--train_label", type=str, default='../Celeb-DF-v2/train.labels.csv',
+    parser.add_argument("--train_label", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/train.labels.csv',
                         help="The traindata label path")
 
-    parser.add_argument("--test_label", type=str, default='../Celeb-DF-v2/test.labels.csv',
+    parser.add_argument("--test_label", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/test.labels.csv',
                         help="The traindata label path")
 
-    parser.add_argument("--train_dir", type=str, default='../Celeb-DF-v2/train',
+    parser.add_argument("--train_dir", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/train',
                         help="The real_train_data path ")
 
-    parser.add_argument("--test_dir", type=str, default='../Celeb-DF-v2/test',
+    parser.add_argument("--test_dir", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/test',
                         help="The real_test_data path ")
 
-    parser.add_argument("--load_model", type=bool, default=False,
+    parser.add_argument("--load_model", type=bool, default=True,
                         help="Whether load pretraining model")
 
-    parser.add_argument("--pre_model", type=str, default='',
+    parser.add_argument("--pre_model", type=str, default='F:\Face Forgery Detection\checkpoints\FF++/checkpoint_2.tar',
                         help="the path of pretraining model")
 
-    parser.add_argument("--save_model", type=str, default='checkpoints/Celeb-DF-v2/',
+    parser.add_argument("--save_model", type=str, default='F:/Face Forgery Detection/checkpoints/FF++/',
                         help="the path of saving model")
 
     return parser.parse_args()
@@ -100,9 +105,18 @@ if __name__ == '__main__':
         # transforms.ToTensor(),  # 转换为张量
     ])
 
-    train_list = [file for file in os.listdir(args.train_dir) if file.endswith('.jpg')]
-    test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.jpg')]
-
+    train_list = [file for file in os.listdir(args.train_dir) if file.endswith('.png')]
+    # 打乱列表顺序
+    random.shuffle(train_list)
+    # 取前 100 个元素
+    #train_list = train_list[:100]
+    
+    test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.png')]
+    # 打乱列表顺序
+    random.shuffle(test_list)
+    # 取前 100 个元素
+    #test_list = test_list[:100]
+    
     ######################################################################################################
     #
     #   添加sampler，并在读取数据时传入，以平衡数据
@@ -126,8 +140,8 @@ if __name__ == '__main__':
     TrainData = torch.utils.data.DataLoader(
         dataset.LoadData(args, train_list, train_label_dict, mode='train', transform=transform_256),
         batch_size=16,
-        # shuffle=True,
-        sampler=sampler,
+        shuffle=True,
+        # sampler=sampler,
         num_workers=8,
         drop_last=True)
     ValData = torch.utils.data.DataLoader(
@@ -138,6 +152,9 @@ if __name__ == '__main__':
         drop_last=True)
 
     model = model_core.Two_Stream_Net()
+    
+    # 替换模型
+    
     model = model.cuda()
     if args.load_model:
         model_state_dict = torch.load(args.pre_model, map_location='cuda:0')['state_dict']
@@ -188,6 +205,10 @@ if __name__ == '__main__':
             train_bar.set_description(desc)
             train_bar.update()
 
+        # Initialize lists to store true labels and predicted probabilities
+        true_labels = []
+        predicted_probs = []
+
         val_correct = 0
         val_total = 0
         val_bar = tqdm(ValData)
@@ -216,6 +237,18 @@ if __name__ == '__main__':
             wandb.log({"Epoch": epoch, "Test_AC": val_ac})
             val_bar.set_description(desc)
             val_bar.update()
+            
+            # 计算概率
+            probabilities = torch.softmax(val_output, dim=1)
+            # 获取预测概率
+            predicted_prob = probabilities[:, 0].cpu().numpy()  # 取第二类的概率作为正类的预测概率
+            
+            # 获取真实标签
+            true_label = val_label.cpu().numpy()
+            
+            # 将真实标签和预测概率添加到列表中
+            true_labels.extend(true_label)
+            predicted_probs.extend(predicted_prob)
 
         savename = args.save_model + '/checkpoint' + '_' + str(epoch) + '.tar'
         if not os.path.exists(args.save_model):
@@ -228,3 +261,35 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Error during model save: {e}")
         epoch = epoch + 1
+
+        # Calculate TPR and FPR
+        fpr, tpr, thresholds = roc_curve(true_labels, predicted_probs, pos_label=0)
+
+        # print(fpr, tpr, thresholds)
+        # print(true_labels, predicted_probs)
+        
+        # Calculate AUC
+        roc_auc = auc(fpr, tpr)
+
+        # Plot ROC curve
+        plt.figure()
+        plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % (roc_auc*100))
+        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.0])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver Operating Characteristic')
+        plt.legend(loc="lower right")
+        
+        # Save ROC curve plot
+        plt.savefig('F:\ECCV\data_preprocessing\processed\FF++/results/roc_curve' + str(epoch) + '.png')
+        
+        # plt.show()
+
+        # Save AUC value
+        print("AUC:", (roc_auc*100))
+        
+        wandb.log({"Epoch": epoch, "AUC": (roc_auc*100)})
+
+        

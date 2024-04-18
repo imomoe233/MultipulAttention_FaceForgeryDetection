@@ -286,34 +286,38 @@ class Two_Stream_Net(nn.Module):
         z = []
         coach_flag = 0
         
-        for i in range(len(encoder_save_path)):
-            '''            
-            if os.path.exists(encoder_save_path[i]):
-                z = torch.stack([z, torch.tensor(torch.load(encoder_save_path[i])[i])], dim=0)
-            elif coach_flag == 0:
-                z = self.coach.run(x)
-                print(z)
-                print(type(z))
-                print(z[1])
-                print(type(z[1]))
-                coach_flag = 1
-                torch.save(z[i], encoder_save_path[i])
-                print("save" + encoder_save_path[i])
-            else:
-                torch.save(z[i], encoder_save_path[i])
-                print("save" + encoder_save_path[i])
-             ''' 
-             
-            if coach_flag == 0:
-                z = self.coach.run(x)
-                coach_flag = 1
-                torch.save(z[i], encoder_save_path[i])
-                #print("save" + encoder_save_path[i])
-            else:
-                torch.save(z[i], encoder_save_path[i])
-                #print("save" + encoder_save_path[i])
-            
-            #z = torch.stack((z), dim=0)
+        #test时，encoder就1个，所以不是数组，无法使用for循环
+        if self.training == False:
+            z = self.coach.run(x)
+        else:
+            for i in range(len(encoder_save_path)):
+                '''            
+                if os.path.exists(encoder_save_path[i]):
+                    z = torch.stack([z, torch.tensor(torch.load(encoder_save_path[i])[i])], dim=0)
+                elif coach_flag == 0:
+                    z = self.coach.run(x)
+                    print(z)
+                    print(type(z))
+                    print(z[1])
+                    print(type(z[1]))
+                    coach_flag = 1
+                    torch.save(z[i], encoder_save_path[i])
+                    print("save" + encoder_save_path[i])
+                else:
+                    torch.save(z[i], encoder_save_path[i])
+                    print("save" + encoder_save_path[i])
+                ''' 
+                
+                if coach_flag == 0:
+                    z = self.coach.run(x)
+                    coach_flag = 1
+                    torch.save(z[i], encoder_save_path[i])
+                    #print("save" + encoder_save_path[i])
+                else:
+                    torch.save(z[i], encoder_save_path[i])
+                    #print("save" + encoder_save_path[i])
+                
+                #z = torch.stack((z), dim=0)
 
 
         # x:RGB Stream
@@ -345,7 +349,7 @@ class Two_Stream_Net(nn.Module):
 
         fea = self.fusion(x, y)
         #print(fea.shape)
-                
+        
         z = self.tiny_attention(z)
         #print(z.shape)
         
