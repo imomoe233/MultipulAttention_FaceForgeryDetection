@@ -110,13 +110,13 @@ if __name__ == '__main__':
 
     train_list = [file for file in os.listdir(args.train_dir) if file.endswith('.png')]
     # 打乱列表顺序
-    # random.shuffle(train_list)
+    random.shuffle(train_list)
     # 取前 100 个元素
     # train_list = train_list[:100]
     
     test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.png')]
     # 打乱列表顺序
-    # random.shuffle(test_list)
+    random.shuffle(test_list)
     # 取前 100 个元素
     # test_list = test_list[:100]
     

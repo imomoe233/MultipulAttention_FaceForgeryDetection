@@ -149,12 +149,14 @@ class Self_Attn(nn.Module):
 class CrossModalAttention(nn.Module):
     """ CMA attention Layer"""
 
-    def __init__(self, in_dim, activation=None, ratio=8, cross_value=True):
+    def __init__(self, in_dim, activation=None, ratio=8, cross_value=True, dropout_prob=0.1, weight_decay=1e-5):
         super(CrossModalAttention, self).__init__()
         self.chanel_in = in_dim
         self.activation = activation
         self.cross_value = cross_value
-
+        self.dropout_prob = dropout_prob
+        self.weight_decay = weight_decay
+        
         self.query_conv = nn.Conv2d(
             in_channels=in_dim, out_channels=in_dim//ratio, kernel_size=1)
         self.key_conv = nn.Conv2d(
@@ -164,6 +166,7 @@ class CrossModalAttention(nn.Module):
         self.gamma = nn.Parameter(torch.zeros(1))
 
         self.softmax = nn.Softmax(dim=-1)
+        self.dropout = nn.Dropout2d(p=dropout_prob)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -183,6 +186,11 @@ class CrossModalAttention(nn.Module):
             B, -1, H*W).permute(0, 2, 1)  # B , HW, C
         proj_key = self.key_conv(y).view(
             B, -1, H*W)  # B X C x (*W*H)
+        
+        # Adding dropout after computing proj_query and proj_key
+        proj_query = self.dropout(proj_query)
+        proj_key = self.dropout(proj_key)
+        
         energy = torch.bmm(proj_query, proj_key)  # B, HW, HW
         attention = self.softmax(energy)  # BX (N) X (N)
         if self.cross_value:
@@ -199,6 +207,11 @@ class CrossModalAttention(nn.Module):
 
         if self.activation is not None:
             out = self.activation(out)
+            
+        # L2 regularization
+        if self.weight_decay > 0:
+            l2_reg = self.weight_decay * sum(p.norm(2) for p in self.parameters())
+            out += l2_reg
 
         return out  # , attention
 
