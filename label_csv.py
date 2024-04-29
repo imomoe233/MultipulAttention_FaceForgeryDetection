@@ -1,8 +1,8 @@
 import os
 import csv
 
-folder_path = 'F:\ECCV\data_preprocessing\processed\FF++\\train_offical'
-csv_file = 'F:\ECCV\data_preprocessing\processed\FF++\\train_offical.labels.csv'
+folder_path = 'F:\ECCV\data_preprocessing\processed\FF++\\test_offical'
+csv_file = 'F:\ECCV\data_preprocessing\processed\FF++\\test_offical.labels.csv'
 
 # 获取文件夹中的文件名
 file_names = os.listdir(folder_path)

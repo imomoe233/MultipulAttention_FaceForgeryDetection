@@ -102,16 +102,17 @@ class TinySelfAttention(nn.Module):
         attention_weights = self.softmax(scores)
         
         # Apply dropout
-        attention_weights = self.dropout(attention_weights)
+        # attention_weights = self.dropout(attention_weights)
         
         # Apply attention to values
         output = torch.matmul(attention_weights, value)
         
         # L2正则化
+        '''
         if self.weight_decay > 0:
             l2_reg = self.weight_decay * sum(p.norm(2) for p in self.parameters())
             output += l2_reg
-        
+        '''
         return output
 
 
@@ -220,12 +221,16 @@ class Two_Stream_Net(nn.Module):
         self.dual_cma0 = DualCrossModalAttention(in_dim=728, ret_att=False)
         self.dual_cma1 = DualCrossModalAttention(in_dim=728, ret_att=False)
         '''
+        
+        # CoAttention 2个输入2个输出，只是他们互相注意力了一下
         self.coattention0 = CoAttention(in_dim=728, ret_att=False)
         self.coattention1 = CoAttention(in_dim=728, ret_att=False)
         
+        # 1输入1输出，自注意力
         self.tiny_attention = TinySelfAttention(input_dim=512, hidden_dim=224)
         #self.tiny_attention = TinySelfAttention(input_dim=512, hidden_dim=512)
         
+        # 2输入1输出，把2个特征揉在一起
         self.cross_attention = CrossModalAttention(in_dim=2048)
 
         self.fusion = FeatureFusionModule()
@@ -248,8 +253,7 @@ class Two_Stream_Net(nn.Module):
         # 创建一个全连接层，将输入的通道数从 14 * 224 扩展到 2048 * 15 * 15
         self.fc_layer = nn.Linear(14 * 224, 2048 * 8 * 8)
         #self.fc_layer = nn.Linear(14 * 512, 2048 * 8 * 8)
-        self.dropout_rgb = nn.Dropout(dropout_prob)  # 添加dropout层
-        self.dropout_lap = nn.Dropout(dropout_prob)  # 添加dropout层
+
 
     def back_features(self, x):
         srm = self.srm_conv0(x)
@@ -344,36 +348,22 @@ class Two_Stream_Net(nn.Module):
         # z:latent space Stream
         x = self.xception_rgb.model.fea_part1_0(x)
         y = self.xception_lap.model.fea_part1_0(y)
-        x = self.relu(x)
-        y = self.relu(y)
-        x = self.dropout_rgb(x)
-        y = self.dropout_lap(y)
 
         x = self.xception_rgb.model.fea_part1_1(x)
         y = self.xception_lap.model.fea_part1_1(y)
-        x = self.relu(x)
-        y = self.relu(y)
 
         x = self.xception_rgb.model.fea_part2(x)
         y = self.xception_lap.model.fea_part2(y)
-        x = self.dropout_rgb(x)
-        y = self.dropout_lap(y)
 
         x, y = self.coattention0(x, y)
 
         x = self.xception_rgb.model.fea_part3(x)        
         y = self.xception_lap.model.fea_part3(y)
-        x = self.relu(x)
-        y = self.relu(y)
  
-        x, y = self.coattention1(x, y)
+        # x, y = self.coattention1(x, y)
 
         x = self.xception_rgb.model.fea_part4(x)
         y = self.xception_lap.model.fea_part4(y)
-        x = self.relu(x)
-        y = self.relu(y)
-        x = self.dropout_rgb(x)
-        y = self.dropout_lap(y)
         
         x = self.xception_rgb.model.fea_part5(x)
         y = self.xception_lap.model.fea_part5(y)

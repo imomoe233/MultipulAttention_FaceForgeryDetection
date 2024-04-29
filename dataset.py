@@ -32,7 +32,8 @@ def get_boundingbox(face, width, height, scale=1.3, minsize=None):
 
 class LoadData(Dataset):
     def __init__(self, arg, img, label_dict, mode='train', transform=None):
-        self.img = img
+        #self.img = img
+        self.img = sorted(img)
         self.label_dict = label_dict
         self.mode = mode
         self.args = arg
@@ -41,81 +42,91 @@ class LoadData(Dataset):
     def __getitem__(self, item):
         input_img = self.img[item]
 
+        #print(input_img)
+        
         t_list = [transforms.ToTensor()]
         composed_transform = transforms.Compose(t_list)
-
-        if self.mode == 'train':
-            face_detect = dlib.get_frontal_face_detector()
-            img = cv2.imread(self.args.train_dir + '/' + input_img)
-            
-            
-            if self.args.train_dir == 'F:/ECCV/data_preprocessing/processed/FF++/train_offical':
-                img_lap = cv2.imread(self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
-            else:
-                img_lap = cv2.imread(self.args.train_dir + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')     
+        try:
+            if self.mode == 'train':
+                face_detect = dlib.get_frontal_face_detector()
+                img = cv2.imread(self.args.train_dir + '/' + input_img)
                 
-            img_lap = cv2.resize(img_lap, (256, 256))
-            img_lap = composed_transform(img_lap)
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = face_detect(gray, 1)
-            if len(faces) != 0:
-                face = faces[0]
-                x, y, size = get_boundingbox(face, 1024, 1024)
-                cropped_face = img[y:y+size, x:x+size]
-                cropped_face = cv2.resize(cropped_face, (256, 256))
-                cropped_face = composed_transform(cropped_face)
+                if self.args.train_dir == 'F:/ECCV/data_preprocessing/processed/FF++/train_offical':
+                    img_lap = cv2.imread(self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
+                else:
+                    img_lap = cv2.imread(self.args.train_dir + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')     
+                    
+                #img_lap = cv2.resize(img_lap, (256, 256))
+                img_lap = composed_transform(img_lap)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                faces = face_detect(gray, 1)
+            
+                if len(faces) != 0:
+                    face = faces[0]
+                    x, y, size = get_boundingbox(face, 256, 256)
+                    cropped_face = img[y:y+size, x:x+size]
+                    #cropped_face = cv2.resize(cropped_face, (256, 256))
+                    cropped_face = composed_transform(cropped_face)
 
-                label = self.label_dict[input_img]
-                label = torch.LongTensor([label])
-            else:
-                cropped_face = cv2.resize(img, (256, 256))
-                cropped_face = composed_transform(cropped_face)
-                label = self.label_dict[input_img]
-                label = torch.LongTensor([label])
-            if self.args.train_dir == 'F:/ECCV/data_preprocessing/processed/FF++/train_offical':
-                encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
-            else:
-                encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
-        
+                    label = self.label_dict[input_img]
+                    label = torch.LongTensor([label])
+                else:
+                    #cropped_face = cv2.resize(img, (256, 256))
+                    #cropped_face = composed_transform(cropped_face)
+                    #从↑修改为↓
+                    cropped_face = composed_transform(img)
+                    print(f'========================== {input_img} no face =============================================')
+                    label = self.label_dict[input_img]
+                    label = torch.LongTensor([label])
+                if self.args.train_dir == 'F:/ECCV/data_preprocessing/processed/FF++/train_offical':
+                    encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
+                else:
+                    encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
+       
+            if self.mode == 'val':
+                face_detect = dlib.get_frontal_face_detector()
+                img = cv2.imread(self.args.test_dir + '/' + input_img)
                 
-        if self.mode == 'val':
-            face_detect = dlib.get_frontal_face_detector()
-            img = cv2.imread(self.args.test_dir + '/' + input_img)
-            
-            
-            if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':
-                img_lap = cv2.imread(self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
-            else:
-                img_lap = cv2.imread(self.args.train_dir + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
-            
-            
-            img_lap = cv2.resize(img_lap, (256, 256))
-            img_lap = composed_transform(img_lap)
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = face_detect(gray, 1)
-            if len(faces) != 0:
-                face = faces[0]
-                x, y, size = get_boundingbox(face, 1024, 1024)
-                cropped_face = img[y:y+size, x:x+size]
-                cropped_face = cv2.resize(cropped_face, (256, 256))
-                cropped_face = composed_transform(cropped_face)
+                
+                if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':
+                    img_lap = cv2.imread(self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
+                else:
+                    img_lap = cv2.imread(self.args.train_dir + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
+                
+                
+                #img_lap = cv2.resize(img_lap, (256, 256))
+                img_lap = composed_transform(img_lap)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                faces = face_detect(gray, 1)
+                if len(faces) != 0:
+                    face = faces[0]
+                    x, y, size = get_boundingbox(face, 256, 256)
+                    cropped_face = img[y:y+size, x:x+size]
+                    #cropped_face = cv2.resize(cropped_face, (256, 256))
+                    cropped_face = composed_transform(cropped_face)
 
-                label = self.label_dict[input_img]
-                label = torch.LongTensor([label])
-            else:
-                cropped_face = cv2.resize(img, (256, 256))
-                cropped_face = composed_transform(cropped_face)
-                label = self.label_dict[input_img]
-                label = torch.LongTensor([label])
-            if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':
-                encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
-            else:
-                encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
-            
+                    label = self.label_dict[input_img]
+                    label = torch.LongTensor([label])
+                else:
+                    #cropped_face = cv2.resize(img, (256, 256))
+                    #cropped_face = composed_transform(cropped_face)
+                    #从↑修改为↓
+                    cropped_face = composed_transform(img)
+                    label = self.label_dict[input_img]
+                    label = torch.LongTensor([label])
+                if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':
+                    encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
+                else:
+                    encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
+   
         
-        if self.transform is not None:
-            cropped_face = self.transform(cropped_face)
-            img_lap = self.transform(img_lap)
+            if self.transform is not None:
+                cropped_face = self.transform(cropped_face)
+                img_lap = self.transform(img_lap)
+                
+        except Exception as e:
+            print(f"Error processing image {input_img}: {str(e)}")
+            return self.__getitem__(item + 1) 
         
         return cropped_face, label, img_lap, encoder_save_path
 

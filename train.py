@@ -112,44 +112,23 @@ if __name__ == '__main__':
     # 打乱列表顺序
     random.shuffle(train_list)
     # 取前 100 个元素
-    # train_list = train_list[:100]
+    train_list = train_list[:len(train_list)//10]
     
     test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.png')]
     # 打乱列表顺序
     random.shuffle(test_list)
     # 取前 100 个元素
-    # test_list = test_list[:100]
+    test_list = test_list[:len(train_list)//2]
     
-    ######################################################################################################
-    #
-    #   添加sampler，并在读取数据时传入，以平衡数据
-    #
-    # 计算每个类别的样本数
-    label_counts = {0: 135016, 1: 21210}
-    for label in train_label_dict.values():
-        label_counts[label] += 1
-
-    # 计算类别权重（真的类别数量是假的四倍）
-    total_count = sum(label_counts.values())
-    class_weights = {cls: total_count / count for cls, count in label_counts.items()}
-
-    # 计算每个样本的权重
-    sample_weights = [class_weights[label] for label in train_label_dict.values()]
-
-    # 创建WeightedRandomSampler对象
-    sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
-    ######################################################################################################
-
     TrainData = torch.utils.data.DataLoader(
         dataset.LoadData(args, train_list, train_label_dict, mode='train', transform=transform_256),
-        batch_size=16,
+        batch_size=32,
         shuffle=True,
-        # sampler=sampler,
         num_workers=8,
         drop_last=True)
     ValData = torch.utils.data.DataLoader(
         dataset.LoadData(args, test_list, test_label_dict, mode='val', transform=transform_256),
-        batch_size=16,
+        batch_size=32,
         shuffle=True,
         num_workers=8,
         drop_last=True)

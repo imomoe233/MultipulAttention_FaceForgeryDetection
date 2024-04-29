@@ -188,8 +188,8 @@ class CrossModalAttention(nn.Module):
             B, -1, H*W)  # B X C x (*W*H)
         
         # Adding dropout after computing proj_query and proj_key
-        proj_query = self.dropout(proj_query)
-        proj_key = self.dropout(proj_key)
+        # proj_query = self.dropout(proj_query)
+        # proj_key = self.dropout(proj_key)
         
         energy = torch.bmm(proj_query, proj_key)  # B, HW, HW
         attention = self.softmax(energy)  # BX (N) X (N)
@@ -209,10 +209,11 @@ class CrossModalAttention(nn.Module):
             out = self.activation(out)
             
         # L2 regularization
+        '''
         if self.weight_decay > 0:
             l2_reg = self.weight_decay * sum(p.norm(2) for p in self.parameters())
             out += l2_reg
-
+        '''
         return out  # , attention
 
 
