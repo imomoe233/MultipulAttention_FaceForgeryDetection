@@ -12,6 +12,6 @@ with open(csv_file, 'w', newline='') as csvfile:
     csv_writer = csv.writer(csvfile)
     for index, file_name in enumerate(file_names, start=1):
         if file_name[0] == 'O':
-            csv_writer.writerow([1, file_name])
+            csv_writer.writerow([1, file_name])#1为真图，0为伪造
         else:
             csv_writer.writerow([0, file_name])
