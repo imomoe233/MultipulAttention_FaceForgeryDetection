@@ -5,13 +5,13 @@ from datetime import datetime
 import sys
 
 # 定义CSV文件名
-csv_filename = 'F:\ECCV\data_preprocessing\processed\FF++\\test_offical.labels.csv'
+csv_filename = 'F:\ECCV\data_preprocessing\processed\FF++\\train_offical.labels.csv'
 
 # 定义源文件夹路径
-source_folder = 'F:\\ECCV\data_preprocessing\\processed\\FF++\\test_offical'
+source_folder = 'F:\\ECCV\data_preprocessing\\processed\\FF++\\train_offical'
 
 # 定义目标文件夹路径
-destination_folder = 'F:\ECCV\data_preprocessing\processed\FF++\\test_lap'
+destination_folder = 'F:\ECCV\data_preprocessing\processed\FF++\\train_lap'
 
 # 如果目标文件夹不存在，则创建
 if not os.path.exists(destination_folder):
@@ -41,12 +41,12 @@ with open(csv_filename, 'w', newline='') as csvfile:
                 face_lap_folder = os.path.join('F:\FaceForensics++\data\\face_lap', file_name[:-4])
                 if os.path.exists(face_lap_folder) and os.path.isdir(face_lap_folder):
                     # 构建目标文件夹路径
-                    destination_path = os.path.join(destination_folder, file_name)
+                    destination_path = os.path.join(destination_folder, file_name[:-4])
                     # 复制文件夹到目标文件夹中
                     shutil.copytree(face_lap_folder, destination_path)
                     print(f"Folder '{file_name[:-4]}' copied successfully.")
-                    sys.exit(0)
                 else:
-                    print(f"No folder named '{file_name}' found in F:\FaceForensics++\data\\face_lap.")
-
+                    print(f"No folder named '{file_name[:-4]}' found in F:\FaceForensics++\data\\face_lap.")
+            else:
+                csv_writer.writerow([0, file_name])#1为真图，0为伪造
 print("All files processed.")

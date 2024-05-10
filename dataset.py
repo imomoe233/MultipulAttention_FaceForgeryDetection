@@ -76,6 +76,13 @@ class LoadData(Dataset):
                     #从↑修改为↓
                     cropped_face = composed_transform(img)
                     print(f'========================== {input_img} no face =============================================')
+                    #os.remove(self.args.train_dir + '\\' + input_img)
+                    #print(f'删除{self.args.train_dir}\{input_img}')
+                    
+                    # 直接下一张图
+                    print(f"Error processing image  {input_img} no face ")
+                    return self.__getitem__(item + 1) 
+                    
                     label = self.label_dict[input_img]
                     label = torch.LongTensor([label])
                 if self.args.train_dir == 'F:/ECCV/data_preprocessing/processed/FF++/train_offical':
@@ -89,8 +96,10 @@ class LoadData(Dataset):
                 
                 
                 if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':
+                    # 为了方便，将test_official下的_lap全放在train_lap中
                     img_lap = cv2.imread(self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
                 else:
+                    # 为了方便，将test_official下的_lap全放在train_lap中
                     img_lap = cv2.imread(self.args.train_dir + '_lap/' + input_img[:-4] + '/recon_normal_lap.png')
                 
                 
@@ -115,8 +124,10 @@ class LoadData(Dataset):
                     label = self.label_dict[input_img]
                     label = torch.LongTensor([label])
                 if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':
+                    # 为了方便，将test_official下的_lap全放在train_lap中
                     encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
                 else:
+                    # 为了方便，将test_official下的_lap全放在train_lap中
                     encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
    
         

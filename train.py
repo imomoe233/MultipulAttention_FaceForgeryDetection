@@ -112,13 +112,13 @@ if __name__ == '__main__':
     # 打乱列表顺序
     random.shuffle(train_list)
     # 取前 100 个元素
-    train_list = train_list[:len(train_list)//10]
+    #train_list = train_list[:len(train_list)//10]
     
     test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.png')]
     # 打乱列表顺序
     random.shuffle(test_list)
     # 取前 100 个元素
-    test_list = test_list[:len(train_list)//2]
+    #test_list = test_list[:len(train_list)//2]
     
     TrainData = torch.utils.data.DataLoader(
         dataset.LoadData(args, train_list, train_label_dict, mode='train', transform=transform_256),
