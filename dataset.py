@@ -121,6 +121,13 @@ class LoadData(Dataset):
                     #cropped_face = composed_transform(cropped_face)
                     #从↑修改为↓
                     cropped_face = composed_transform(img)
+                    print(f'========================== {input_img} no face =============================================')
+                    #os.remove(self.args.train_dir + '\\' + input_img)
+                    #print(f'删除{self.args.train_dir}\{input_img}')
+                    
+                    # 直接下一张图
+                    print(f"Error processing image  {input_img} no face ")
+                    return self.__getitem__(item + 1)
                     label = self.label_dict[input_img]
                     label = torch.LongTensor([label])
                 if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':

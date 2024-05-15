@@ -47,10 +47,10 @@ def input_args():
     parser.add_argument("--results_save_path", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/FF++_offical2FF++_offical_results',
                         help="The real_test_data path ")
 
-    parser.add_argument("--load_model", type=bool, default=False,
+    parser.add_argument("--load_model", type=bool, default=True,
                         help="Whether load pretraining model")
 
-    parser.add_argument("--pre_model", type=str, default='F:\Face Forgery Detection\checkpoints\FF++/checkpoint_2.tar',
+    parser.add_argument("--pre_model", type=str, default='F:\Face Forgery Detection\checkpoints\FF++/checkpoint_0.tar',
                         help="the path of pretraining model")
 
     parser.add_argument("--save_model", type=str, default='F:/Face Forgery Detection/checkpoints/FF++/',
@@ -112,13 +112,15 @@ if __name__ == '__main__':
     # 打乱列表顺序
     random.shuffle(train_list)
     # 取前 100 个元素
-    #train_list = train_list[:len(train_list)//10]
+    #train_list = train_list[:len(train_list)//100]
+    #train_list = train_list[:1]
     
     test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.png')]
     # 打乱列表顺序
     random.shuffle(test_list)
     # 取前 100 个元素
-    #test_list = test_list[:len(train_list)//2]
+    #test_list = test_list[:len(train_list)//100]
+    #test_list = test_list[:200]
     
     TrainData = torch.utils.data.DataLoader(
         dataset.LoadData(args, train_list, train_label_dict, mode='train', transform=transform_256),
@@ -183,7 +185,8 @@ if __name__ == '__main__':
             desc = 'Training : Epoch %d, AvgLoss = %.4f, AC = %.4f' % (epoch, avg_loss, correct_per)
 
             # correct_per是包含了整个batch之前出现过后的均值，所以作为结果，只需要看他在这个batch的最后一次的值即可
-            wandb.log({"Epoch": epoch, "Train_AvgLoss": avg_loss, "Train_AC": correct_per})
+            if wandb :
+                wandb.log({"Epoch": epoch, "Train_AvgLoss": avg_loss, "Train_AC": correct_per})
             train_bar.set_description(desc)
             train_bar.update()
 
@@ -216,21 +219,25 @@ if __name__ == '__main__':
             desc = 'Validation  : Epoch %d, AC = %.4f' % (epoch, val_ac)
 
             # val_ac是包含了整个batch之前出现过后的均值，所以作为结果，只需要看他在这个batch的最后一次的值即可
-            wandb.log({"Epoch": epoch, "Test_AC": val_ac})
+            if wandb :
+                wandb.log({"Epoch": epoch, "Test_AC": val_ac})
             val_bar.set_description(desc)
             val_bar.update()
             
             # 计算概率
             probabilities = torch.softmax(val_output, dim=1)
             # 获取预测概率
-            predicted_prob = probabilities[:, 0].cpu().numpy()  # 取第二类的概率作为正类的预测概率
+            #print(probabilities)
+            predicted_prob = probabilities[:, 1].cpu().numpy()  # 取第二类的概率作为正类的预测概率
             
             # 获取真实标签
             true_label = val_label.cpu().numpy()
             
             # 将真实标签和预测概率添加到列表中
-            true_labels.extend(true_label)
+            #true_labels.extend(true_label)
+            true_labels.extend(val_label.cpu().numpy().tolist())
             predicted_probs.extend(predicted_prob)
+            
 
         savename = args.save_model + '/checkpoint' + '_' + str(epoch) + '.tar'
         if not os.path.exists(args.save_model):
@@ -244,8 +251,11 @@ if __name__ == '__main__':
             print(f"Error during model save: {e}")
         epoch = epoch + 1
 
+        #print(true_labels)
+        #print(predicted_probs)
+        
         # Calculate TPR and FPR
-        fpr, tpr, thresholds = roc_curve(true_labels, predicted_probs, pos_label=1)
+        fpr, tpr, thresholds = roc_curve(true_labels, predicted_probs, pos_label=None)
 
         # print(fpr, tpr, thresholds)
         # print(true_labels, predicted_probs)
@@ -271,10 +281,10 @@ if __name__ == '__main__':
         plt.savefig(args.results_save_path + '/roc_curve' + str(epoch) + '.png')
         
         # plt.show()
-
+        
         # Save AUC value
         print("AUC:", (roc_auc*100))
-        
-        wandb.log({"Epoch": epoch, "AUC": (roc_auc*100)})
+        if wandb :
+            wandb.log({"Epoch": epoch, "AUC": (roc_auc*100)})
 
         
