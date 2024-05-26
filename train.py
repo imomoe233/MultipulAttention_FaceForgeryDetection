@@ -47,7 +47,7 @@ def input_args():
     parser.add_argument("--results_save_path", type=str, default='F:/ECCV/data_preprocessing/processed/FF++/FF++_offical2FF++_offical_results',
                         help="The real_test_data path ")
 
-    parser.add_argument("--load_model", type=bool, default=True,
+    parser.add_argument("--load_model", type=bool, default=False,
                         help="Whether load pretraining model")
 
     parser.add_argument("--pre_model", type=str, default='F:\Face Forgery Detection\checkpoints\FF++/checkpoint_0.tar',
@@ -60,7 +60,7 @@ def input_args():
 
 
 if __name__ == '__main__':
-    # wandb = None
+    wandb = None
     if wandb is not None:
         wandb.init(
             # set the wandb project where this run will be logged
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     random.shuffle(train_list)
     # 取前 100 个元素
     #train_list = train_list[:len(train_list)//100]
-    #train_list = train_list[:1]
+    #train_list = train_list[:100]
     
     test_list = [file for file in os.listdir(args.test_dir) if file.endswith('.png')]
     # 打乱列表顺序
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         train_bar = tqdm(TrainData)
         total = 0
 
-        for batch_idx, (input_img, img_label, img_lap, encoder_save_path) in enumerate(train_bar):
+        for batch_idx, (input_img, img_label, img_lap, encoder_save_path, encoder_save) in enumerate(train_bar):
             count = count + 1
 
             model.train()
@@ -162,7 +162,7 @@ if __name__ == '__main__':
             img_label = img_label.to(device)
             img_lap = img_lap.to(device)
 
-            outputs = model(input_img, img_lap, encoder_save_path)
+            outputs = model(input_img, img_lap, encoder_save)
             optimizer.zero_grad()
 
             amloss = am_softmax.AMSoftmaxLoss()
@@ -176,9 +176,11 @@ if __name__ == '__main__':
             _, predict = torch.max(outputs.data, 1)
             # print(outputs)
             correct += predict.eq(img_label.data).cpu().sum()
+            '''
             for i in range(len(predict.eq(img_label.data))):
                 if predict.eq(img_label.data)[i] == False:
                     print("识别错误的人脸: " + encoder_save_path[i])
+            '''    
             total = total + img_label.size(0)
             correct_per = 100.0 * correct / total
 
@@ -197,7 +199,7 @@ if __name__ == '__main__':
         val_correct = 0
         val_total = 0
         val_bar = tqdm(ValData)
-        for batch_idx, (val_input, val_label, img_lap, encoder_save_path) in enumerate(val_bar):
+        for batch_idx, (val_input, val_label, img_lap, encoder_save_path, encoder_save) in enumerate(val_bar):
             model.eval()
 
             val_input = val_input.to(device)
@@ -206,13 +208,13 @@ if __name__ == '__main__':
             img_lap = img_lap.to(device)
 
             with torch.no_grad():
-                val_output = model(val_input, img_lap, encoder_save_path)
+                val_output = model(val_input, img_lap, encoder_save)
             _, val_predict = torch.max(val_output.data, 1)
             val_correct += val_predict.eq(val_label.data).cpu().sum()
             for i in range(len(val_predict.eq(val_label.data))):
                 if val_predict.eq(val_label.data)[i] == False:
                     print(encoder_save_path[i])
-                    print(val_label.data[i])
+                    #print(val_label.data[i])
             val_total = val_total + val_label.size(0)
             val_ac = 100.0 * val_correct / val_total
 
@@ -245,10 +247,12 @@ if __name__ == '__main__':
             print(f"Folder '{args.save_model}' created.")
         else:
             print(f"Folder '{args.save_model}' already exists.")
+        '''
         try:
             torch.save({'epoch': epoch, 'state_dict': model.state_dict()}, savename)
         except Exception as e:
             print(f"Error during model save: {e}")
+        '''
         epoch = epoch + 1
 
         #print(true_labels)

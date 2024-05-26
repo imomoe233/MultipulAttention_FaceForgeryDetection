@@ -3,6 +3,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from torch.nn import Parameter
 from models.inversion_coach import InversionCoach
 from components.attention import ChannelAttention, ChannelSpatialAttention, SpatialAttention, DualCrossModalAttention, CoAttention, CrossModalAttention
@@ -299,49 +300,15 @@ class Two_Stream_Net(nn.Module):
 
         return fea
 
-    def features(self, x, img_lap, encoder_save_path):
+    def features(self, x, img_lap, encoder_save):
         x = x
         #print("load img")
         y = img_lap
         #print("load img_lap")
-
-        z = []
-        coach_flag = 0
         
-        #test时，encoder就1个，所以不是数组，无法使用for循环
-        if self.training == False:
-            z = self.coach.run(x)
-        else:
-            for i in range(len(encoder_save_path)):
-                '''            
-                if os.path.exists(encoder_save_path[i]):
-                    z = torch.stack([z, torch.tensor(torch.load(encoder_save_path[i])[i])], dim=0)
-                elif coach_flag == 0:
-                    z = self.coach.run(x)
-                    print(z)
-                    print(type(z))
-                    print(z[1])
-                    print(type(z[1]))
-                    coach_flag = 1
-                    torch.save(z[i], encoder_save_path[i])
-                    print("save" + encoder_save_path[i])
-                else:
-                    torch.save(z[i], encoder_save_path[i])
-                    print("save" + encoder_save_path[i])
-                ''' 
-                
-                if coach_flag == 0:
-                    z = self.coach.run(x)
-                    coach_flag = 1
-                    
-                    torch.save(z[i], encoder_save_path[i])
-                    #print("save" + encoder_save_path[i])
-                else:
-                    torch.save(z[i], encoder_save_path[i])
-                    #print("save" + encoder_save_path[i])
-                
-                #z = torch.stack((z), dim=0)
-
+        z = encoder_save
+        
+        
 
         # x:RGB Stream
         # y:High-frequency Stream
@@ -371,6 +338,8 @@ class Two_Stream_Net(nn.Module):
         fea = self.fusion(x, y)
         #print(fea.shape)
         
+        
+        # 不要3D encoder
         z = self.tiny_attention(z)
         #print(z.shape)
         
@@ -385,6 +354,7 @@ class Two_Stream_Net(nn.Module):
 
         fea = self.cross_attention(fea, z)
         #print(fea.shape)
+        
         
         return fea
 

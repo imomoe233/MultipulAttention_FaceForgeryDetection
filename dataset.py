@@ -74,21 +74,24 @@ class LoadData(Dataset):
                     #cropped_face = cv2.resize(img, (256, 256))
                     #cropped_face = composed_transform(cropped_face)
                     #从↑修改为↓
-                    cropped_face = composed_transform(img)
-                    print(f'========================== {input_img} no face =============================================')
+                    #cropped_face = composed_transform(img)
+                    #print(f'========================== {input_img} no face =============================================')
                     #os.remove(self.args.train_dir + '\\' + input_img)
                     #print(f'删除{self.args.train_dir}\{input_img}')
                     
                     # 直接下一张图
-                    print(f"Error processing image  {input_img} no face ")
+                    #print(f"Error processing image  {input_img} no face ")
                     return self.__getitem__(item + 1) 
                     
                     label = self.label_dict[input_img]
                     label = torch.LongTensor([label])
                 if self.args.train_dir == 'F:/ECCV/data_preprocessing/processed/FF++/train_offical':
-                    encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
+                    encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/encoder.pt'
+                    
                 else:
-                    encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
+                    encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/encoder.pt'
+
+                encoder_save = torch.load(encoder_save_path)
        
             if self.mode == 'val':
                 face_detect = dlib.get_frontal_face_detector()
@@ -120,24 +123,25 @@ class LoadData(Dataset):
                     #cropped_face = cv2.resize(img, (256, 256))
                     #cropped_face = composed_transform(cropped_face)
                     #从↑修改为↓
-                    cropped_face = composed_transform(img)
-                    print(f'========================== {input_img} no face =============================================')
+                    #cropped_face = composed_transform(img)
+                    #print(f'========================== {input_img} no face =============================================')
                     #os.remove(self.args.train_dir + '\\' + input_img)
                     #print(f'删除{self.args.train_dir}\{input_img}')
                     
                     # 直接下一张图
-                    print(f"Error processing image  {input_img} no face ")
+                    #print(f"Error processing image  {input_img} no face ")
                     return self.__getitem__(item + 1)
                     label = self.label_dict[input_img]
                     label = torch.LongTensor([label])
                 if self.args.test_dir == 'F:/ECCV/data_preprocessing/processed/FF++/test_offical':
                     # 为了方便，将test_official下的_lap全放在train_lap中
-                    encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
+                    encoder_save_path = self.args.train_dir[:-8] + '_lap/' + input_img[:-4] + '/encoder.pt'
                 else:
                     # 为了方便，将test_official下的_lap全放在train_lap中
-                    encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/' + input_img[:-4] + 'encoder.npy'
-   
-        
+                    encoder_save_path = self.args.train_dir + '_lap/' + input_img[:-4] + '/encoder.pt'
+
+                encoder_save = torch.load(encoder_save_path)
+                
             if self.transform is not None:
                 cropped_face = self.transform(cropped_face)
                 img_lap = self.transform(img_lap)
@@ -146,7 +150,7 @@ class LoadData(Dataset):
             print(f"Error processing image {input_img}: {str(e)}")
             return self.__getitem__(item + 1) 
         
-        return cropped_face, label, img_lap, encoder_save_path
+        return cropped_face, label, img_lap, encoder_save_path, encoder_save
 
     def __len__(self):
         return len(self.img)
